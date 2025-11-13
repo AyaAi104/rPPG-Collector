@@ -1,0 +1,44 @@
+# created by virtualenv automatically
+
+# Python interpret
+__pycache__/
+*.py[cod]
+*$py.class
+
+# virtual environment
+venv/
+ENV/
+env/
+.venv/
+.env/
+
+# build
+build/
+dist/
+*.egg-info/
+
+# log and text
+*.log
+*.json
+*.h5
+*.docx
+*.pptx
+*.pdf
+*.drawio
+*.csv
+*.png
+
+# test
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# Mac OS
+.DS_Store
