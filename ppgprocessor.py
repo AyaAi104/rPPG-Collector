@@ -1,7 +1,5 @@
-import os
-
 from config import data_settings
-from evaluate_ppg import *
+from utils.evaluate_ppg import *
 
 
 import pandas as pd

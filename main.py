@@ -8,10 +8,11 @@ import threading
 import re
 from GUI import start_gui
 from realtimemonitor import start_realtime_monitor
+from nexigocamera import *
 
 
 class PulseSensorCollector:
-    def __init__(self, port='COM3', baudrate=115200, save_dir="./data/rawsignal"):
+    def __init__(self, port='COM3', baudrate=115200, save_dir="./data/rawsignal",camera = None):
         """
         Initialize serial collector.
 
@@ -30,6 +31,8 @@ class PulseSensorCollector:
         self.command_queue = queue.Queue()
         self.monitor = None  # Real-time monitor window reference
         self.is_paused = False  # Track Arduino pause status
+
+        self.camera = camera
 
     def connect(self):
         """Connect to serial port"""
@@ -76,6 +79,19 @@ class PulseSensorCollector:
         self.collection_active = True
         print(f"Started data collection, saving to: {filename}")
         print("-" * 60)
+
+        record_time = 10
+        if self.camera is not None:
+            print(f"starting recording from main.py")
+            cam_thread = threading.Thread(
+                target=self.camera.record,
+                kwargs={'record_time': record_time},
+                daemon=True
+            )
+            cam_thread.start()
+            print(f"[Camera] Started recording thread for {record_time} seconds")
+        else:
+            print("[Camera] No camera attached to collector, skip video recording.")
 
     def stop_collection(self):
         if self.csv_file:
@@ -238,7 +254,7 @@ def main():
     print("=" * 60)
 
     port = 'COM3'
-    collector = PulseSensorCollector(port=port, baudrate=115200)
+    collector = PulseSensorCollector(port=port, baudrate=115200, camera = Camera())
 
     if collector.connect():
         monitor = start_realtime_monitor(collector)
