@@ -23,6 +23,8 @@ dist/
 *.h5
 *.docx
 *.pptx
+
+# resource
 *.pdf
 *.drawio
 *.csv
