@@ -254,7 +254,7 @@ def main():
     print("=" * 60)
 
     port = 'COM3'
-    collector = PulseSensorCollector(port=port, baudrate=115200, camera = Camera())
+    collector = PulseSensorCollector(port=port, baudrate=115200, camera = Camera(1))
 
     if collector.connect():
         monitor = start_realtime_monitor(collector)

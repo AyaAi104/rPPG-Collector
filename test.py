@@ -1,23 +1,9 @@
 import cv2
+from nexigocamera import Camera
 
-cam_index = 0  # 换成你扫描出的可用 index
+#0 for NEXIGO
 
-cap = cv2.VideoCapture(cam_index, cv2.CAP_DSHOW)
+#1 for iPhone
+camera = Camera(1)
 
-if not cap.isOpened():
-    print("Still cannot open camera, check if other apps are using it.")
-    exit()
-
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        print("Failed to grab frame")
-        break
-
-    cv2.imshow("NEXIGO Preview", frame)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+camera.preview()

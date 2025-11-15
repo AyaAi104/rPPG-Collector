@@ -9,5 +9,10 @@ clean:
 	@powershell -Command "New-Item -ItemType Directory -Path './data/rawsignal' -Force | Out-Null"
 	@echo Clean completed!
 
+cleanvideos:
+	@echo I am cleaning videos contents...
+	@powershell -Command "Remove-Item -Path './data/video/*' -Recurse -Force"
+	@echo Clean completed!
+
 analyze:
 	python ppgprocessor.py
