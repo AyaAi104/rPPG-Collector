@@ -130,14 +130,14 @@ def compute_ppg_sqi(ppg, file_path, fs_in, ch,
     """
     先基于人体信号预处理，再计算 SQI。
     """
-    # 预处理：统一到 100 Hz + 带通 + 去趋势
+    # 预处理：统一到 50 Hz + 带通 + 去趋势
     ppg_filt, fs = preprocess_ppg(
         ppg, fs_in, target_fs=50,
         bp_band=bp_band,
         detrend_medwin=detrend_medwin
     )
 
-    # Welch PSD
+    # Welch PSD, do FFT
     x = ppg_filt - np.mean(ppg_filt)
     nperseg = min(1024, len(x)) if len(x) >= 16 else len(x)
 

@@ -1,9 +1,9 @@
 import cv2
-from nexigocamera import Camera
-
+from nexigo_camera import Camera
+from config import data_settings as settings
 #0 for NEXIGO
 
 #1 for iPhone
-camera = Camera(1)
+camera = Camera(settings["camera_index"])
 
 camera.preview()

@@ -61,9 +61,15 @@ class Camera:
             if key == ord('q') or key == 27:
                 print("Exit by key")
                 break
+    def warmup(self):
+        print("Warming up camera...")
+        for _ in range(5):
+            ret, frame = self.cap.read()
+
+        print("Camera ready!")
 
     def record(self, record_time=10):
-        # 启动保存线程
+
         self.save_thread_running = True
         self.save_thread = threading.Thread(target=self._save_worker, daemon=True)
         self.save_thread.start()
@@ -84,14 +90,7 @@ class Camera:
 
         print("Saving frames to folder:", self.output_dir)
 
-        # 预热摄像头：读取并丢弃前几帧，让摄像头调整曝光
-        print("Warming up camera...")
-        for _ in range(10):  # 丢弃前10帧
-            ret, frame = self.cap.read()
-            if ret:
-                cv2.imshow(window_name, frame)
-                cv2.waitKey(1)
-        print("Camera ready!")
+
 
         start_time = time.time()
         next_capture_time = start_time
@@ -117,7 +116,7 @@ class Camera:
                 ts_ms = int(time.time() * 1000)
                 filename = os.path.join(self.output_dir, f"{ts_ms}.png")
 
-                # 放入队列，不阻塞
+
                 self.save_queue.put((filename, frame.copy()))
 
                 self.frame_count += 1

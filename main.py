@@ -1,15 +1,12 @@
 import serial
-import time
 from datetime import datetime
 import csv
-import os
 import queue
-import threading
 import re
 from GUI import start_gui
-from realtimemonitor import start_realtime_monitor
-from nexigocamera import *
-
+from utils.realtimemonitor import start_realtime_monitor
+from nexigo_camera import *
+from config import data_settings as settings
 
 class PulseSensorCollector:
     def __init__(self, port='COM3', baudrate=115200, save_dir="./data/rawsignal",camera = None):
@@ -165,7 +162,11 @@ class PulseSensorCollector:
             return False
 
         if user_input.lower() == 'collect':
+            if self.camera is not None:
+                #self.camera.warmup()
+                i = 0
             self.send_command('collect')
+
             time.sleep(0.5)
             self.start_collection(save_dir=self.save_dir)
         else:
@@ -254,7 +255,7 @@ def main():
     print("=" * 60)
 
     port = 'COM3'
-    collector = PulseSensorCollector(port=port, baudrate=115200, camera = Camera(1))
+    collector = PulseSensorCollector(port=port, baudrate=115200, camera = Camera(settings["camera_index"]))
 
     if collector.connect():
         monitor = start_realtime_monitor(collector)

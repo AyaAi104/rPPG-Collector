@@ -14,5 +14,11 @@ cleanvideos:
 	@powershell -Command "Remove-Item -Path './data/video/*' -Recurse -Force"
 	@echo Clean completed!
 
+empty:
+	@echo I am cleaning all datas...
+	@powershell -Command "Remove-Item -Path './data/video/*' -Recurse -Force"
+	@powershell -Command "Remove-Item -Path './data/rawsignal/*' -Recurse -Force"
+	@echo Clean completed!
+
 analyze:
-	python ppgprocessor.py
+	python ppg_processor.py
