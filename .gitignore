@@ -29,6 +29,7 @@ dist/
 *.drawio
 *.csv
 *.png
+*.mp4
 
 # test
 .tox/

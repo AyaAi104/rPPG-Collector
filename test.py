@@ -6,4 +6,6 @@ from config import data_settings as settings
 #1 for iPhone
 camera = Camera(settings["camera_index"])
 
-camera.preview()
+#camera.record()
+#camera.preview()
+camera.measure()

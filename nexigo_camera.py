@@ -2,9 +2,14 @@ import cv2
 import time
 import os
 import threading
+import numpy as np
+from config import data_settings as settings
 from queue import Queue
+from utils.face_distance_measurement import FaceDistanceMeasurement, create_optimal_calibration, CameraCalibration
+from pathlib import Path
+from utils.pixel_counter import FacePixelCounter
 
-window_name = "NEXIGO Preview"
+window_name = "Camera Preview"
 
 
 class Camera:
@@ -16,7 +21,7 @@ class Camera:
         self.RECORD_DURATION = 10.0  # 10 秒
         self.MAX_FRAMES = int(self.TARGET_FPS * self.RECORD_DURATION)
 
-        # 多线程保存队列
+        # Save
         self.save_queue = Queue()
         self.save_thread = None
         self.save_thread_running = False
@@ -28,9 +33,65 @@ class Camera:
             exit()
         self.cap.set(cv2.CAP_PROP_FPS, self.TARGET_FPS)
         print("Camera reported FPS:", self.cap.get(cv2.CAP_PROP_FPS))
+        #
+        calibration = self._load_calibration(settings["calibration_file"])
+        self.measurer = FaceDistanceMeasurement(calibration)
+
+        self.pixel_counter = FacePixelCounter()
+
+    def _load_calibration(self, calibration_file = settings["calibration_file"]):
+        """"""
+        calibration_path = Path("./data/camera_parameter") / calibration_file
+
+        if calibration_path.exists():
+            try:
+                print(f"Loading calibration from: {calibration_file}")
+                data = np.load(calibration_path)
+
+                # Extract camera matrix parameters
+                camera_matrix = data['camera_matrix']
+                fx = camera_matrix[0, 0]
+                fy = camera_matrix[1, 1]
+                cx = camera_matrix[0, 2]
+                cy = camera_matrix[1, 2]
+
+                # Use average focal length (fx and fy should be similar)
+                focal_length = (fx + fy) / 2.0
+
+                image_width = int(data['image_width'])
+                image_height = int(data['image_height'])
+
+                print(" Calibration loaded successfully at {}!".format(calibration_file))
+                print(f"  Focal Length (fx): {fx:.2f} px")
+                print(f"  Focal Length (fy): {fy:.2f} px")
+                print(f"  Mean Focal Length: {focal_length:.2f} px")
+                print(f"  Principal Point: ({cx:.2f}, {cy:.2f})")
+                print(f"  Image Size: {image_width}x{image_height}")
+
+                # Create CameraCalibration object
+                calibration = CameraCalibration(
+                    focal_length=focal_length,
+                    principal_point=(cx, cy),
+                    image_width=image_width,
+                    image_height=image_height
+                )
+
+                return calibration
+
+            except Exception as e:
+                print(f" Failed to load calibration file: {e}")
+                print("  Falling back to default calibration...")
+        else:
+            print(f" Calibration file not found: {calibration_file}")
+            print("  Falling back to default calibration...")
+
+                # Fallback to create_optimal_calibration
+        print("Using create_optimal_calibration as fallback...")
+        calibration = create_optimal_calibration(self.cap, 720)
+        return calibration
 
     def _save_worker(self):
-        """后台线程：从队列中取图片并保存"""
+        """"""
         while self.save_thread_running:
             try:
                 item = self.save_queue.get(timeout=0.1)
@@ -145,6 +206,65 @@ class Camera:
                 cv2.destroyWindow(window_name)
                 self.is_window_created = False
                 break
+
+    def measure(self):
+        """"""
+        if not self.measurer:
+            print("fail to initialize")
+            return
+
+        print("Start to measure\n")
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        self.is_window_created = True
+
+        while True:
+            #
+            if cv2.getWindowProperty(window_name, cv2.WND_PROP_VISIBLE) < 1:
+                print("\ncolse")
+                break
+
+            ret, frame = self.cap.read()
+            if not ret:
+                print("no frame exists")
+                break
+
+            # begin to measure the distance
+            measurement = self.measurer.measure_distance(frame)
+            # begin to count the pixels
+            pixel_info = self.pixel_counter.count_face_pixels(frame)
+            if measurement:
+                distance = measurement['distance_cm']
+                pitch = measurement['pitch_degrees']
+                yaw = measurement['yaw_degrees']
+                roll = measurement['roll_degrees']
+                pos_h = measurement['position_azimuth']  #
+                pos_v = measurement['position_elevation']
+
+                pixel_count = pixel_info['total_pixels'] if pixel_info else 0
+                face_ratio = pixel_info['face_ratio_percent'] if pixel_info else 0
+
+                print(f"\rDistance {distance:6.1f} cm | pitch: {pitch:+6.1f}° | yaw: {yaw:+6.1f}° "
+                      f"| roll: {roll:+6.1f}°|angle: {pos_h}",
+                      end='', flush=True)
+            else:
+                print("\rCan not detect face", end='', flush=True)
+
+            #
+            frame_display = self.measurer.draw_on_frame(frame, measurement) if self.measurer else frame
+            frame_display = self.pixel_counter.draw_pixel_info(frame_display, pixel_info,
+                                                               show_contour=True,
+                                                               show_bbox=False)
+
+            cv2.imshow(window_name, frame_display)
+            #
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q') or key == 27:
+                print("\nexit")
+                break
+
+        cv2.destroyAllWindows()
+        self.is_window_created = False
+        print("measurement ends")
 
     def __del__(self):
         if hasattr(self, 'save_thread') and self.save_thread and self.save_thread.is_alive():

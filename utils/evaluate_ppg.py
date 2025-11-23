@@ -128,9 +128,9 @@ def compute_ppg_sqi(ppg, file_path, fs_in, ch,
                     detrend_medwin=0.5,
                     do_plot=True):
     """
-    先基于人体信号预处理，再计算 SQI。
+
     """
-    # 预处理：统一到 50 Hz + 带通 + 去趋势
+    #sample to 50
     ppg_filt, fs = preprocess_ppg(
         ppg, fs_in, target_fs=50,
         bp_band=bp_band,
