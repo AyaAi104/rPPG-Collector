@@ -4,7 +4,7 @@ import csv
 import queue
 import re
 from GUI import start_gui
-from utils.realtimemonitor import start_realtime_monitor
+from utils.realtime_monitor import start_realtime_monitor
 from nexigo_camera import *
 from config import data_settings as settings
 
@@ -70,7 +70,8 @@ class PulseSensorCollector:
             'PC_DateTime',
             'Arduino_millis',
             'Signal_Value',
-            'Package_Num'
+            'Package_Num',
+            'HR'
         ])
 
         self.collection_active = True
@@ -108,11 +109,12 @@ class PulseSensorCollector:
                     arduino_millis = parts[1].strip()
                     signal_value = parts[2].strip()
                     led_output = parts[3].strip()
+                    heart_rate = parts[4].strip()
 
                     pc_timestamp_ms = int(time.time() * 1000)
                     pc_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
-                    return [pc_timestamp_ms, pc_datetime, arduino_millis, signal_value, led_output]
+                    return [pc_timestamp_ms, pc_datetime, arduino_millis, signal_value, led_output, heart_rate]
         except Exception as e:
             print(f"Parse error: {e}")
         return None
@@ -231,7 +233,7 @@ class PulseSensorCollector:
                             self.stop_collection()
 
                 else:
-                    time.sleep(0.0001)
+                    time.sleep(0.001)
 
         except KeyboardInterrupt:
             print("\nUser interrupted (Ctrl+C)")

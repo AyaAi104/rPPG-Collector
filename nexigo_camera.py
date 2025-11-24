@@ -5,7 +5,7 @@ import threading
 import numpy as np
 from config import data_settings as settings
 from queue import Queue
-from utils.face_distance_measurement import FaceDistanceMeasurement, create_optimal_calibration, CameraCalibration
+from utils.distance_ruler import FaceDistanceMeasurement, create_optimal_calibration, CameraCalibration
 from pathlib import Path
 from utils.pixel_counter import FacePixelCounter
 
@@ -247,7 +247,7 @@ class Camera:
                       f"| roll: {roll:+6.1f}°|angle: {pos_h}",
                       end='', flush=True)
             else:
-                print("\rCan not detect face", end='', flush=True)
+                print("\rCan not detect face", end='\n', flush=True)
 
             #
             frame_display = self.measurer.draw_on_frame(frame, measurement) if self.measurer else frame

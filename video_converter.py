@@ -29,7 +29,7 @@ def convert_images_to_video(input_folder, output_video, fps=50, image_extension=
                           if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))])
 
     if not image_files:
-        raise ValueError(f"在文件夹中未找到图像文件 / No image files found in {input_folder}")
+        raise ValueError(f" No image files found in {input_folder}")
 
     print(f"找到 {len(image_files)} 张图像 / Found {len(image_files)} images")
     print(f"第一张: {image_files[0]}, 最后一张: {image_files[-1]}")

@@ -63,8 +63,26 @@ class PhotoplethysmographyProcessor:
             'PC_DateTime',
             'Arduino_millis',
             'Signal_Value',
-            'Package_Num'
+            'Package_Num',
+            'HR'
         ]
+
+        try:
+            hrs = [abs(int(i)) for i in df['HR'].dropna().values]
+            hrs = self.remove_zeros(hrs)
+            if len(hrs) > 0:
+                HR_avg = sum(hrs) / len(hrs)
+            else:
+                HR_avg = None  #
+        except KeyError:
+            # No HR column
+            HR_avg = None
+        except Exception as e:
+            #
+            print(f"There is no column named HR: {e}")
+            HR_avg = None
+        if HR_avg is not None:
+            print('Average HR from Arduino:', HR_avg)
 
         # Extract PPG column data
         for ch in self.used_ch:
@@ -72,6 +90,7 @@ class PhotoplethysmographyProcessor:
             data = self.remove_zeros(data)
             all_chs_data.append({"ch": 0, "data": data})
             fpath = file_path  # kept to preserve original structure (even if unused)
+
 
         return all_chs_data
 

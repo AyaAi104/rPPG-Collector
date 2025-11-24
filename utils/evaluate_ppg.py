@@ -25,10 +25,10 @@ def paint_ppg_spectrum_freq_domain(f, Pxx, hr_band=(0.8, 3.0), f_hr=None):
         xt = list(plt.xticks()[0]) + [f_hr]
         plt.xticks(xt, [*(f"{x:.0f}" for x in xt[:-1]), f"{f_hr:.2f}*"])
 
-    plt.xlabel("Frequency [Hz]")
+    plt.xlabel(f"Frequency [Hz], HR = {f_hr*60}")
     plt.ylabel("PSD [a.u./Hz]")
     plt.title("PPG Frequency Spectrum")
-    plt.xlim(0, 10)  # PPG 的有效带宽通常 < 10 Hz
+    plt.xlim(0, 10)  # Effective PPG bandwidth is usually < 10 Hz
     plt.legend()
     plt.tight_layout()
     plt.show()
@@ -83,21 +83,22 @@ def paint_ppg_time_domain(ppg, fs, file_path, ch, sqi=None, smooth=True,
 
 def preprocess_ppg(ppg, fs_in,
                    target_fs=50,
-                   bp_band=(0.5, 8.0),   # 生理合理带：去除基线漂移(<0.5 Hz)和高频毛刺(>8 Hz)
-                   detrend_medwin=0.5,   # 中值滤波窗口（秒），None 关闭
+                   bp_band=(0.5, 8.0),   # Physiologically reasonable band: remove baseline drift (<0.5 Hz) and high-frequency spikes (>8 Hz)
+                   detrend_medwin=0.5,   # Median filter window (seconds); set None to disable detrending
                    butter_order=4):
     """
-    返回: ppg_filt (100 Hz), fs_out=100.0
-    步骤:
-      1) 统一采样率到 target_fs（上/下采样，resample_poly 内置抗混叠 FIR）
-      2) Butterworth 带通 (bp_band)
-      3) 可选中值滑窗去趋势（抵抗缓慢基线与部分运动伪迹）
+    Returns: ppg_filt (resampled signal at target_fs), fs_out = target_fs
+
+    Steps:
+      1) Normalize sampling rate to target_fs (up/down sample, resample_poly has built-in anti-aliasing FIR)
+      2) Apply Butterworth band-pass filter (bp_band)
+      3) Optionally apply median-filter-based detrending (to suppress slow baseline and part of motion artifacts)
     """
     x = np.asarray(ppg, dtype=float)
     fs_in = float(fs_in)
     fs_out = float(target_fs)
 
-    # 1) 统一采样率
+    # 1) Normalize sampling rate
     if abs(fs_in - fs_out) < 1e-9:
         x_rs = x
     else:
@@ -105,12 +106,12 @@ def preprocess_ppg(ppg, fs_in,
         up, down = frac.numerator, frac.denominator
         x_rs = resample_poly(x, up, down)
 
-    # 2) 带通滤波
+    # 2) Band-pass filtering
     nyq = 0.5 * fs_out
     lo = max(0.001, bp_band[0] / nyq)
     hi = min(0.999, bp_band[1] / nyq)
 
-    if hi <= lo:  # 极端保护
+    if hi <= lo:  # Guard for extreme parameter settings
         return x_rs.astype(float), fs_out
 
     sos = butter(butter_order, [lo, hi], btype='bandpass', output='sos')
@@ -121,16 +122,16 @@ def preprocess_ppg(ppg, fs_in,
 
 # ---------- Core: compute SQI for PPG ----------
 def compute_ppg_sqi(ppg, file_path, fs_in, ch,
-                    hr_band=(0.8, 7.0),
+                    hr_band=(0.75, 4.0),
                     total_band=(0.0, 10.0),
                     use_harmonic=False, harmonic_bw=0.3,
-                    bp_band=(0.5, 7.0),
+                    bp_band=(0.5, 4.0),
                     detrend_medwin=0.5,
                     do_plot=True):
     """
-
+    Compute signal quality index (SQI) for a PPG signal and estimate heart-rate frequency.
     """
-    #sample to 50
+    # sample to 50 Hz
     ppg_filt, fs = preprocess_ppg(
         ppg, fs_in, target_fs=50,
         bp_band=bp_band,
@@ -148,8 +149,9 @@ def compute_ppg_sqi(ppg, file_path, fs_in, ch,
 
     f, Pxx = welch(x, fs, nperseg=nperseg)
 
-    # HR 主带找峰
+    # HR band
     m_hr = (f >= hr_band[0]) & (f <= hr_band[1])
+    # m_hr = (f >= hr_band[0]) & (f <= 2)
     if not np.any(m_hr):
         if do_plot:
             paint_ppg_time_domain(ppg_filt, fs, sqi=0.0, tag="no HR")
@@ -158,7 +160,7 @@ def compute_ppg_sqi(ppg, file_path, fs_in, ch,
 
     f_hr = f[m_hr][np.argmax(Pxx[m_hr])]
 
-    # 带功率
+    # Band power
     def band_power(f1, f2):
         m = (f >= f1) & (f <= f2)
         return np.trapezoid(Pxx[m], f[m]) if np.any(m) else 0.0
@@ -174,10 +176,10 @@ def compute_ppg_sqi(ppg, file_path, fs_in, ch,
 
     sqi = float(np.clip(P / P_total if P_total > 0 else 0.0, 0.0, 1.0))
 
-    # 画图（时域只显示前 15 s，标题带 SQI）
+    # Plot (time domain shows only first 15 s, title includes SQI)
     if do_plot:
         paint_ppg_spectrum_freq_domain(f, Pxx, hr_band=hr_band, f_hr=f_hr)
         paint_ppg_time_domain(ppg_filt, fs, file_path=file_path, ch=ch, sqi=sqi, max_time=15)
-        #paint_ppg_time_domain(ppg, fs, file_path=file_path, ch=ch, sqi=sqi, max_time=15)
+        # paint_ppg_time_domain(ppg, fs, file_path=file_path, ch=ch, sqi=sqi, max_time=15)
 
     return sqi, f_hr  # , (f, Pxx)

@@ -7,5 +7,5 @@ from config import data_settings as settings
 camera = Camera(settings["camera_index"])
 
 #camera.record()
-#camera.preview()
-camera.measure()
+camera.preview()
+#camera.measure()
