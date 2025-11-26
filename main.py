@@ -78,7 +78,7 @@ class PulseSensorCollector:
         print(f"Started data collection, saving to: {filename}")
         print("-" * 60)
 
-        record_time = 10
+        record_time = settings["record_duration"]+1
         if self.camera is not None:
             print(f"starting recording from main.py")
             cam_thread = threading.Thread(
@@ -166,7 +166,7 @@ class PulseSensorCollector:
         if user_input.lower() == 'collect':
             if self.camera is not None:
                 #self.camera.warmup()
-                i = 0
+                operation = "pass" #pass
             self.send_command('collect')
 
             time.sleep(0.5)
@@ -242,7 +242,7 @@ class PulseSensorCollector:
             self.cleanup()
 
     def cleanup(self):
-        """Cleanup resources"""
+        # Interrupt: Cleanup resources
         if self.collection_active:
             self.stop_collection()
         if self.ser and self.ser.is_open:

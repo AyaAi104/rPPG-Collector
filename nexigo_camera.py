@@ -18,9 +18,9 @@ class Camera:
         self.output_dir = None
         self.TARGET_FPS = 50.0
         self.FRAME_INTERVAL = 1.0 / self.TARGET_FPS  # 0.02s
-        self.RECORD_DURATION = 10.0  # 10 秒
-        self.MAX_FRAMES = int(self.TARGET_FPS * self.RECORD_DURATION)
-
+        self.RECORD_DURATION = settings["record_duration"] + 0.3 # for warm up, otherwise, the first frame will be fully black
+        #self.MAX_FRAMES = int(self.TARGET_FPS * self.RECORD_DURATION)
+        self.MAX_FRAMES = int(self.TARGET_FPS * settings["record_duration"])+1
         # Save
         self.save_queue = Queue()
         self.save_thread = None
@@ -151,14 +151,12 @@ class Camera:
 
         print("Saving frames to folder:", self.output_dir)
 
-
-
         start_time = time.time()
         next_capture_time = start_time
         self.frame_count = 0
 
         print(f"Start recording: {record_time}s, target ~{int(self.TARGET_FPS * record_time)} frames")
-
+        round = 0
         while True:
             if cv2.getWindowProperty(window_name, cv2.WND_PROP_VISIBLE) < 1:
                 print("Window closed by user (X).")
@@ -178,8 +176,9 @@ class Camera:
                 filename = os.path.join(self.output_dir, f"{ts_ms}.png")
 
 
-                self.save_queue.put((filename, frame.copy()))
-
+                if round > 0:
+                    self.save_queue.put((filename, frame.copy()))
+                round += 1 #ignore the first frame
                 self.frame_count += 1
                 next_capture_time += self.FRAME_INTERVAL
 

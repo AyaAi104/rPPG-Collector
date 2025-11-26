@@ -6,6 +6,16 @@ from pyprintf import sprintf
 from scipy.signal import resample_poly, butter, sosfiltfilt, savgol_filter, welch
 
 
+def normalize(x):
+    x_min = np.min(x)
+    x_max = np.max(x)
+
+    if x_max - x_min > 1e-9:  # Avoid division by zero
+        x_normalized = 2000 * (x - x_min) / (x_max - x_min) - 1000
+    else:
+        x_normalized = np.zeros_like(x)
+
+    return x_normalized
 # ---------- Plot helpers (PPG) ----------
 def paint_ppg_spectrum_freq_domain(f, Pxx, hr_band=(0.8, 3.0), f_hr=None):
     """
@@ -116,8 +126,9 @@ def preprocess_ppg(ppg, fs_in,
 
     sos = butter(butter_order, [lo, hi], btype='bandpass', output='sos')
     x_bp = sosfiltfilt(sos, x_rs)
+    x_normalized = normalize(x_bp)
 
-    return x_bp.astype(float), fs_out
+    return x_normalized.astype(float), fs_out
 
 
 # ---------- Core: compute SQI for PPG ----------

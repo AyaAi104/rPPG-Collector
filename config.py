@@ -10,8 +10,9 @@ camera_name = [
 
 
 data_settings = {
-    "calibration_file": "camera_calibration_iPhone15_wide_1.npz",
+    "calibration_file": "camera_calibration_NEXIGO.npz",
     "camera_index": 0,
-    "camera_name": camera_name[5],
+    "camera_name": camera_name[5],# used in calibration
     "ppg_input_file": "pulse_data.csv",
+    "record_duration": 10
 }
