@@ -75,9 +75,6 @@ otherwise, the processor won’t be able to locate the PPG file.
 
 
 
-
-*If you accidentally delete useful reviews, you can regenerate it using `UsefulReviewFilter.py`.*
-
 ## Contact
 
 Aya -  aiy002@udayton.edu
