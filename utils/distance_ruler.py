@@ -225,7 +225,8 @@ class FaceDistanceMeasurement:
         # Convert rotation vector to Euler angles.
         try:
             rotation_mat, _ = cv2.Rodrigues(rotation_vec)
-            angles = self._rotation_matrix_to_euler_angles(rotation_mat)
+            #angles = self._rotation_matrix_to_euler_angles(rotation_mat)
+            angles = cv2.RQDecomp3x3(rotation_mat)[0]
         except:
             return None
 
@@ -244,9 +245,12 @@ class FaceDistanceMeasurement:
             'distance_cm': distance_filtered,
             'distance_m': distance_filtered / 100.0,
             'distance_mm': distance_filtered * 10.0,
-            'pitch_degrees': np.degrees(angle_x_filtered),  # Up-down angle
-            'yaw_degrees': np.degrees(angle_y_filtered),    # Left-right angle
-            'roll_degrees': np.degrees(angle_z_filtered),   # Tilt angle
+            #'pitch_degrees': np.degrees(angle_x_filtered),  # Up-down angle
+            #'yaw_degrees': np.degrees(angle_y_filtered),    # Left-right angle
+            #'roll_degrees': np.degrees(angle_z_filtered),   # Tilt angle
+            'pitch_degrees': (angle_x_filtered),  # Up-down angle
+            'yaw_degrees': (angle_y_filtered),  # Left-right angle
+            'roll_degrees': (angle_z_filtered),  # Tilt angle
             'face_2d_points': face_2d,
             'rotation_vec': rotation_vec,
             'translation_vec': translation_vec,

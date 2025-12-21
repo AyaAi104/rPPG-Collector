@@ -8,5 +8,5 @@ camera = Camera(settings["camera_index"])
 
 
 #camera.preview()
-#camera.measure()
-camera.record()
+camera.measure()
+#camera.record()
