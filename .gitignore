@@ -12,6 +12,7 @@ env/
 .venv/
 .env/
 
+
 # build
 build/
 dist/
@@ -28,9 +29,9 @@ dist/
 *.pdf
 *.drawio
 *.csv
-*.png
 *.mp4
-
+data/video/
+calibration_images/
 # test
 .tox/
 .nox/
