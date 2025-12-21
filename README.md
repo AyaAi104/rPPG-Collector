@@ -76,36 +76,6 @@ otherwise, the processor won’t be able to locate the PPG file.
 
 
 
-
-## Needed files
-The files that are needed to use for training and evaluating are in "dataset/"
-<table>
-  <tr>
-    <th colspan="2" align="center">Needed files list</th>
-  </tr>
-  <tr>
-    <th align="center"><strong>Content</strong></th>
-    <th align="center"><strong>File Name</strong></th>
-  </tr>
-  <tr>
-    <td align="center">All dataset</td>
-    <td align="center">yelp_review.json</td>
-  </tr>
-  <tr>
-    <td align="center">Useful dataset</td>
-    <td align="center">yelp.useful.json</td>
-  </tr>
- <tr>
-    <td align="center">Encoded all dataset's array</td>
-    <td align="center">data.h5</td>
-  </tr>
-  <tr>
-    <td align="center">Encoded non-useless array</td>
-    <td align="center">data_non_u.h5.json</td>
-  </tr>
-</table>
-
-The remaining files are generated only as intermediate outputs.   
 *If you accidentally delete useful reviews, you can regenerate it using `UsefulReviewFilter.py`.*
 
 ## Contact
