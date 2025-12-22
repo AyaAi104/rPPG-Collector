@@ -46,7 +46,7 @@ Below is an example of how you can run this project
 #### * Config
 In `./config.py`, you need to modify `data_settings class`. 
 You can find how to modify it in the comments.
-As for calibration_file, you need to select the correct 
+As for calibration_file, you need to select the correct camera calibration file.
 #### * Test
 If you use your phone as a webcam connected to your computer, you need to install Camo Studio first and follow its tutorial to connect your smartphone.
 Due to hardware-related issues, I provide several test APIs to ensure proper functionality. In `./test.py`, try running these three functions\
