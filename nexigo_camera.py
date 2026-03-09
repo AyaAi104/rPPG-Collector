@@ -10,6 +10,8 @@ from queue import Queue
 from utils.distance_ruler import FaceDistanceMeasurement, create_optimal_calibration, CameraCalibration
 from pathlib import Path
 from utils.pixel_counter import FacePixelCounter
+from config import test_settings  as ts
+from remind import ExperimentProtocol
 
 window_name = "Camera Preview"
 
@@ -30,7 +32,10 @@ class Camera:
         self.save_thread = None
         self.save_thread_running = False
 
+        #self.cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
         self.cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+        self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc('m', 'j', 'p', 'g'))
+        self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc('M', 'J', 'P', 'G'))
         self.is_window_created = False
         if not self.cap.isOpened():
             print("Still cannot open camera, check if other apps are using it.")
@@ -46,7 +51,7 @@ class Camera:
         for i in range(warmup_frames):
             ret, frame = self.cap.read()
             if ret and frame is not None:
-                # 检查是否还是黑帧
+
                 mean_brightness = frame.mean()
                 if i % 10 == 0:
                     print(f"  Warmup frame {i + 1}/{warmup_frames}, brightness: {mean_brightness:.1f}")
@@ -60,6 +65,7 @@ class Camera:
         # CSV logging attributes
         self.csv_file = None
         self.csv_writer = None
+        self._flush_buffer()
 
     def _load_calibration(self, calibration_file=settings["calibration_file"]):
         """"""
@@ -273,7 +279,7 @@ class Camera:
 
         print("Camera ready!")
 
-    def record(self, record_time=10):
+    def record(self, record_time=80):
         """
         Record video with synchronized geometric data logging.
 
@@ -301,7 +307,21 @@ class Camera:
         os.makedirs(base_dir, exist_ok=True)
 
         session_ms = int(time.time() * 1000)
-        self.output_dir = os.path.join(base_dir, f"frames_{session_ms}")
+        if settings['is_name']:
+            folder_name = "vid_{distance}m_{illumination}lux_{motion}_{angle}deg_use{camera}_1".format(distance = ts['distance'],
+                                                                                                 illumination = ts['illumination'],
+                                                                                                 motion = ts['motion'],
+                                                                                                 angle = ts['angle'],
+                                                                                                 camera = 'iPhone' if ts['camera'] else 'GoPro')
+        else:
+            folder_name = "vid_{distance}m_{illumination}lux_{motion}_{angle}deg_use{camera}".format(
+                distance=ts['distance'],
+                illumination=ts['illumination'],
+                motion=ts['motion'],
+                angle=ts['angle'],
+                camera='iPhone' if ts['camera'] else 'GoPro')
+
+        self.output_dir = os.path.join(base_dir, folder_name)
         os.makedirs(self.output_dir, exist_ok=True)
 
         print("Saving frames to folder:", self.output_dir)
@@ -315,6 +335,9 @@ class Camera:
 
         print(f"Start recording: {record_time}s, target ~{int(self.TARGET_FPS * record_time)} frames")
         print("Synchronized CSV logging enabled")
+        # if ts['motion'] != 'Stationary':
+        #     app = ExperimentProtocol(monitor_index=1, word=ts['motion'], log_dir=self.output_dir)
+        #     app.start()
 
         round = 0
 
@@ -330,6 +353,7 @@ class Camera:
 
             # Display frame (with optional debug visualization)
             cv2.imshow(window_name, frame)
+
 
             now = time.time()
 
@@ -372,6 +396,8 @@ class Camera:
 
                 cv2.destroyWindow(window_name)
                 self.is_window_created = False
+                # if app is not None:
+                #     app.stop()
                 break
 
             key = cv2.waitKey(1) & 0xFF
@@ -460,5 +486,91 @@ class Camera:
         self.cap.release()
         cv2.destroyAllWindows()
         print(f"Camera released.")
+    def release(self):
+        if hasattr(self, 'save_thread') and self.save_thread and self.save_thread.is_alive():
+            self.save_thread_running = False
+            self.save_queue.put(None)
+            self.save_thread.join(timeout=1)
 
-# Todo: time alignment issues have been addressed with synchronized CSV logging
+        # Close CSV if still open
+        if hasattr(self, 'csv_file') and self.csv_file is not None:
+            self._close_csv()
+
+        self.cap.release()
+        cv2.destroyAllWindows()
+        print(f"Camera released.")
+
+    def _flush_buffer(self, max_wait=6.0, brightness_threshold=10, green_threshold=0.3):
+        """
+        等待 GoPro 启动序列结束（广告 → 绿帧 → 正常帧）
+        检测连续若干帧都正常才认为稳定
+        """
+        print("Waiting for GoPro to stabilize...")
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
+        stable_count = 0
+        REQUIRED_STABLE_FRAMES = 10  # 连续 10 帧正常才算稳定
+        flush_start = time.time()
+
+        while time.time() - flush_start < max_wait:
+            ret, frame = self.cap.read()
+            if not ret or frame is None:
+                stable_count = 0
+                continue
+
+            if self._is_valid_frame(frame, brightness_threshold, green_threshold):
+                stable_count += 1
+                if stable_count >= REQUIRED_STABLE_FRAMES:
+                    elapsed = time.time() - flush_start
+                    print(f"✓ GoPro stabilized after {elapsed:.1f}s")
+                    return
+            else:
+                stable_count = 0  # 一旦出现异常帧就重置计数
+
+        print("⚠ Warning: GoPro did not fully stabilize, proceeding anyway")
+
+    def _is_valid_frame(self, frame, brightness_threshold=10, green_threshold=0.3):
+        """
+        判断帧是否是有效的正常帧，排除广告帧和绿帧
+        """
+        # 1. 太暗 → 黑帧
+        if frame.mean() < brightness_threshold:
+            return False
+
+        # 2. 检测绿色异常帧
+        # 分离 BGR 通道
+        b, g, r = cv2.split(frame)
+        g_mean = float(g.mean())
+        r_mean = float(r.mean())
+        b_mean = float(b.mean())
+        total = g_mean + r_mean + b_mean
+
+        if total > 0:
+            g_ratio = g_mean / total
+            # 绿色占比超过阈值 → 绿帧
+            if g_ratio > green_threshold:
+                return False
+
+        if frame.std() < 8:
+            return False
+
+        return True
+
+    def standby(self):
+        """
+        在等待 PPG 同步信号时调用，持续消耗缓冲区。
+        调用 record() 前只要 standby() 还在跑，就不会积压坏帧。
+        """
+        print("Camera standby: consuming buffer while waiting for sync...")
+        self._standby_running = True
+        self._standby_thread = threading.Thread(target=self._standby_worker, daemon=True)
+        self._standby_thread.start()
+
+    def _standby_worker(self):
+        while self._standby_running:
+            self.cap.read()
+
+    def stop_standby(self):
+        self._standby_running = False
+        if self._standby_thread:
+            self._standby_thread.join(timeout=1)

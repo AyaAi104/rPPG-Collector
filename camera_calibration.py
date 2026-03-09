@@ -71,8 +71,10 @@ class CameraCalibrationTool:
             return False
 
         # Set high resolution for better precision
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        #cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+        #cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
         # Create save directory
         save_dir = Path("./calibration_images")
@@ -373,7 +375,7 @@ def main():
     print("[Step 2] Collect Images with Live Preview")
     print("-" * 70)
     input(">> Ready to capture? Press ENTER to start...")
-    success = tool.collect_calibration_images(camera_index=0, num_images=20)
+    success = tool.collect_calibration_images(camera_index=2, num_images=20)
 
     if not success:
         print("\nInsufficient images collected. Please try again.")
@@ -398,7 +400,7 @@ def main():
     print("-" * 70)
     tool.save_calibration(mtx, dist)
 
-    print("\nâœ“ Calibration Complete!")
+    print("\n Calibration Complete!")
     print("You can now use 'camera_calibration.npz' for accurate distance measurements")
 
 
